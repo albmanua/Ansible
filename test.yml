@@ -1,0 +1,39 @@
+--- 
+- hosts: grp1
+  become: true
+  handlers: 
+    - 
+      name: restart_httpd
+      service: "name=httpd state=restarted"
+  hosts: grp1
+  tasks: 
+    - 
+      name: "installing package"
+      register: pkg_log
+      with_items: 
+        - httpd
+        - php
+        - mariadb
+      yum: "name={{item}} state=present disable_gpg_check=yes"
+    - 
+      command: "httpd -v"
+      name: "httpd pkg validation"
+      register: httpd_validation
+      when: pkg_log|success
+    - 
+      name: "starting httpd service"
+      service: "name:httpd state:started"
+      when: httpd_validation|success
+    - 
+      copy: "src=index.html dest=/var/www/html/index.html"
+      name: "copying index file"
+      notify: 
+        - restart_httpd
+      when: httpd_validation|success
+    - 
+      lineinfile: "dest=/etc/httpd/conf/httpd.conf state=present regexp=\"^Listen\" line=\"Listen 8080\""
+      name: "updating httpd conf"
+      notify: 
+        - restart_httpd
+      when: httpd_validation|successs
+

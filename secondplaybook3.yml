@@ -1,0 +1,19 @@
+
+---
+ - hosts: grp1
+   become: true
+   vars:
+    - pkg: "{{pkg_name}}"
+      
+   tasks:
+    - name: installation of httpd package
+      yum: name="{{item}}" state=present
+      with items:
+       - "{{pkg}}"
+      register: pkg_install
+
+    - name: starting httpd service
+      service: name="{{item}}" state=started enabled=yes
+      with items:
+       - "{{pkg}}"
+      when: pkg_install|success
